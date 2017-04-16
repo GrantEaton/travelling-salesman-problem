@@ -80,7 +80,7 @@ Brake each coordinate 33.00 44.00 to a tuple ('33.00','44.00')
 def city_tup(list):
 	for item in list:
 		first_coord, space, second_coord = item.partition(' ')
-		cities_tups.append((first_coord.strip(), second_coord.strip()))
+		cities_tups.append((int(first_coord.strip()), int(second_coord.strip())))
 	return cities_tups
 
 """
@@ -104,10 +104,27 @@ def plot_cities(cities_tups):
 	plt.show()
 
 
+def get_cities_dict(file="test.tsp"):
+        data = read_tsp_data(file)
+	dimension = detect_dimension(data)
+	cities_set = get_cities(data,dimension)
+	cities_tups = city_tup(cities_set)
+	return create_cities_dict(cities_tups)
+
+def get_cities_tups(file="test.tsp"):
+        data = read_tsp_data(file)
+	dimension = detect_dimension(data)
+	cities_set = get_cities(data,dimension)
+	cities_tups = city_tup(cities_set)
+	return cities_tups
+
+
+
+
 """
 Putting it all together
 """
-def produce_final(file="test.tsp"):
+def  produce_final(file="test.tsp"):
 	data = read_tsp_data(file)
 	dimension = detect_dimension(data)
 	cities_set = get_cities(data,dimension)
