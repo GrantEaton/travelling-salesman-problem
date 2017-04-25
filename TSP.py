@@ -2,6 +2,8 @@ import math
 import parser
 import networkx as nx
 import matplotlib.pyplot as plt
+import heldKarp as hk
+
 #from plot import plotTSP
 
 G=nx.Graph()
@@ -29,7 +31,19 @@ print(G.nodes())
 bestScore = 999999999
 bestPath = []
 
+def getDistancesMatrix(nodes):
+    distances = [[ 0 for i in range(len(nodes))] for j in range(len(nodes))]
+    i = 0 
+    for curNode,xy in nodes.iteritems():
+        j = 0
+        for node,xy in nodes.iteritems():
+            dist = math.sqrt(((xy[0] - nodes[curNode][0]) * (xy[0] - nodes[curNode][0])) + ((xy[1] - nodes[curNode][1]) * (xy[1] - nodes[curNode][1])))
+            distances[i][j] = dist
+            j+=1
+        i+=1
+    return distances
 
+print getDistancesMatrix(graphNodes)
 
 def bruteForceTSPHelper (nodes, start, curNode, path, score, visited):
     global bestScore
@@ -61,7 +75,7 @@ def bruteForceTSPHelper (nodes, start, curNode, path, score, visited):
             #kprint(visited)
                 
             if(score < bestScore):
-                print("best",bestPath)
+                print("best",bestScore)
                 bestPath = path
                 bestScore = score
         else:
@@ -90,6 +104,9 @@ def bruteForceTSP(nodes):
 
 
 bruteForceTSP(graphNodes)
+
+a = hk.held_karp(getDistancesMatrix(graphNodes))
+print a
 
 
 
