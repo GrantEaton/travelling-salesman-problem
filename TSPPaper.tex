@@ -1,0 +1,422 @@
+\documentclass[a4paper,titlepage, margin, 11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{apacite}
+\usepackage{graphicx}
+\usepackage{mathptmx}
+\usepackage[hyphens]{url} 
+\usepackage{amsmath}%
+\usepackage{MnSymbol}%
+\usepackage{wasysym}%
+
+\usepackage[titletoc,title]{appendix}
+\numberwithin{equation}{section} 
+
+
+\algdef{SE}[SUBALG]{Indent}{EndIndent}{}{\algorithmicend\ }%
+\algtext*{Indent}
+\algtext*{EndIndent}
+
+
+
+\title{Improving a Brute-Force of the Traveling Salesman Problem}
+\author{Grant Eaton }
+\date{April 2017}
+
+\usepackage{natbib}
+\usepackage{graphicx}
+
+\begin{document}
+
+
+\maketitle
+
+\section{Purpose}
+The purpose of this paper is to analyze the Traveling Salesman problem and its known solutions. More specifically, we will explain a naive solution to the problem and how to implement it, then analyze different ways to improve this solution, as well as go through how this algorithm works, along with proving it is an improvement.
+
+
+\section{Introduction}
+The Traveling Salesman Problem is described as such: ``Find the shortest route (tour) for a salesman starting from a given city, visiting each specified group of cities, and then returning to the original point of departure.'' (Fulkerson \& Dantzig \& Johnson, 1954). Typically, a collection of cities will be represented as a directed graph, where each vertex is a city and an edge represents a path from one city to another. For the purposes of this paper, we will analyze only undirected graphs, which will make implementation easier, as well as simplify problems. The problem can be generalized as: given an input of an $n$ x $n$ matrix where $D_{}i_j$ represents the distance from city $i$ to city $j$, find a permutation of cities that results in the shortest sum of $D_{ij}$ between consecutive points. 
+For example, for the given graph with $n$ = 4 vertexes, 1, 2, 3 and 4, the  $D_{ij}$ for all vertexes of the graph is:
+
+
+\begin{table}[h]
+\centering
+\begin{tabular}{c | c | c | c | c|}
+    & 1 & 2 & 3 & 4 \\\hline
+    1 & 0.0 & 1.0 & 1.0 & 1.414 \\ \hline
+    2 & 1.0 & 0.0 & 1.414 & 1.0 \\\hline
+    3 & 1.0 & 1.414 & 0.0 & 1.0 \\\hline
+    4 & 1.414 & 1.0 & 1.0 & 0.0 \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\begin{figure}[h!]
+\caption{Vertex Distances as Table}
+\end{figure}
+
+\newpage
+And our matrix input would be: \\
+
+
+\begin{center}
+
+
+$
+D'_{ij} = 
+\begin{bmatrix}
+    0.0 & 1.0 & 1.0 & 1.414 \\
+    1.0 & 0.0 & 1.414 & 1.0 \\
+    1.0 & 1.414 & 0.0 & 1.0 \\
+    1.414 & 1.0 & 1.0 & 0.0 \\
+\end{bmatrix}
+ $
+ 
+ \begin{figure}[h!]
+\caption{Vertex Distances as Matrix}
+\end{figure}
+\end{center}
+
+
+Our output to the problem is a matrix of 0s and 1s, where a 0 represents that there is no edge between the vertexes and a 1 means that there is a vertex. For example, the correct output to the graph in Table 1 would be: 
+
+\begin{center}
+$
+X'_{ij}=
+\begin{bmatrix}
+    0 & 0 & 1 & 0 \\
+    1 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 1 \\
+    0 & 1 & 0 & 0 \\
+\end{bmatrix}
+ $
+
+
+ \begin{figure}[h!]
+\caption{Optimal Output to Table 1}
+\end{figure}
+\end{center}
+
+And the optimal path graphed would look like:
+
+\begin{figure}[h!]
+\centering
+\includegraphics[scale=.25]{exGraph}
+\caption{An Example Graph of Figure 2}
+\label{fig:exGraph}
+\end{figure}
+
+
+The optimal distance to the problem can be represented as the minimum of the linear form  
+$$D(X) = \sum_{i=j=0}^{n-1} D_{ij}X_{ij}$$
+
+For this example, D(X) = 4.
+
+
+For the purposes of this paper, we will represent the output as a list
+\begin{center}
+$L = [v_1,v_2 ... v_k,v_1]$
+\end{center}
+where each number represents a vertex, and each consecutive vertex represents an edge between those vertexes. For example, the graph in figure 4 would be represented as: $L = [1, 3, 4, 2, 1]$
+
+
+
+\makeatletter
+\def\BState{\State\hskip-\ALG@thistlm}
+\makeatother
+
+\section{Brute Force}
+
+In this section, we will discuss a naive solution to the Traveling Salesman Problem. If the goal of the problem is to find the permutation of cities, where the path through all of them is the shortest, then one solution would be to simply compute every permutation of all given cities, then keep the one with the shortest distance. The algorithm to do this is fairly trivial.\\
+ First, we set our $bestTour$ to an initial route permutation and the and $bestScore$ to the score associated with the Euclidean distance between the two vertexes. Then, we loop until there are no permutations left, constantly checking to see if the new tour has a more optimal path. If it does, we update the $bestScore$ and $bestTour$. Finally, after all route permutations have been checked, we return our $bestScore$ and $bestTour$.
+
+
+\begin{algorithm}
+\caption{Brute Force TSP}\label{euclid}
+\begin{algorithmic}[1]
+\Procedure{BruteForceTSP(cityMatrix[][])}{}
+\State $\textit{bestTour} \gets \textit{getTourPermutation(cityMatrix)}$
+\State $bestScore \gets \textit{getScore(tour)}$
+\BState $\textbf{while} $ permutations are left\State $\textit{tour} \gets \textit{getTourPermutation(cityMatrix)}$
+\If {$getScore(tour) < \textit{bestScore}$} 
+\State $bestScore \gets \textit{getScore(tour)}$
+\State $bestTour \gets T$ \\
+\Return $bestTour, bestScore$
+\EndIf
+\EndProcedure
+\end{algorithmic}
+\end{algorithm} 
+
+Since this algorithm has to generate $O(n!)$ different permutations, its run-time will be $O(n!)$. In practice, this is very slow, only allowing modern processors to generate solutions to up roughly 10 cities in under a few minutes.\\ 
+
+For example, we are given the matrix to the following graph with the solution, $L = [1, 3, 4, 6, 9, 8, 7, 10, 5, 2, 1]$ shown as:\\
+
+\begin{figure}[h!]
+\centering
+\includegraphics[scale=.30]{10PointsGraph.png}
+\caption{An Example Graph of Figure 2}
+\label{fig:exGraph}
+\end{figure}
+
+\newpage
+
+Running on a 2013 Macbook Pro with a 2.6GHz i7 processor, we get a total run-time of 22.629 seconds. In these 22 seconds, the computer considered 10! = 3,628,800 route permutations. Adding extra nodes is increasing our run-time factorially.
+
+\section{Analyzing Potential Improvements}
+The Traveling Salesman Problem has seen many improvements beyond the brute force since it was first published in a paper. Some solutions are complete, finding the optimal path (Held-Karp algorithm), some find approximate solutions to the problem, giving a range with the accurate solution (Christofide's algorithm), and others use heuristics to find good, but sub-optimal solutions to the problem. Since the Traveling Salesman problem is an NP problem (it cannot be solved under a polynomial time), we know that there are currently no solutions that will give us the optimal solution without a polynomial run-time. In this section we will analyze the optimization algorithms, notice pros and cons, and finally, pick one to further analyze.\\
+
+\textbf{Christofides Algorithm}
+
+Christofides Algorithm is an approximation algorithm that guarantees a solution within 50 - 150\% the true value. This means that it can be used to accurately predict a range of values the solution will be in (Christopfide, 1976). The algorithm works by using minimum spanning trees, using the handshaking lemma, creating a minimum-weight perfect matching subgraph, forming a Eulerian circuit, and finally getting the Hamiltonian circuit of the graph.The output is guaranteed to be 50\% away from the actual optimal solution. The upside of this algorithm is its speedy run-time compared to brute force: $O(n^3)$.(Christofides, 1976) The downside of the algorithm is that its useless other than certain scenarios where you want to predict a range of values that the solution is within. \\
+
+\textbf{Nearest Neighbor Heuristic}\\
+The Nearest Neighbor heuristic is a simple, yet effective approach to getting a sub-optimal solution the Traveling Salesman Problem. The idea is to:
+
+\begin{enumerate}
+    \item Select a random city, $r$
+    \item find the next, nearest city, then go there.
+    \item Repeat step 2 until there are no unvisited cities left.
+    \item Return to $r$
+\end{enumerate}
+(Nilsson)\\
+Since this algorithm essentially is a loop nested inside an identical loop, both
+
+iterating from 1 to $n$, we end up with an $O(n^2)$ solution. Unfortunately, though, our solution is not always going to be optimal. This is because we are relying on a heuristic (a good guess) for picking the next node. This leads us to only know that our solution is a decent one, but likely non-optimal. \\
+
+
+\textbf{Held-Karp Algorithm}\\
+The Held-Karp Algorithm is a dynamic programming solution to the problem. The idea is to take a top-down approach, generating all possible sub-sets to the problem, then saving them in a table. Each sub-set can be constructed based off previously solved subsets, saving time compared to the brute force. This results in an exact solution with a run-time of $O(2^nn^2)$ algorithm, which at first glance appears to be a very substantial improvement, however it requires $O(2^nn)$ space, which means our algorithm still can only go up to around 30 cities before maxing out 16gb of ram (Michael Held \& R.M.K, 1962). Since this algorithm can be implemented relatively easily, it solves an exact solution, and we should be able to see a speed increase that is thousands of times faster.
+
+\section{The Held-Karp Algorithm}
+The Held-Karp algorithm works as such:
+let 
+
+let $S = [v_1, v_2, ..., v_{n}]$ be a subset  of ${1,2,..., n}$, $l \in S$, where $v_1$ is our starting \& ending vertex, and $D_{l,v_1}$ represents the distance from $l$ to $v_1$. 
+For every $l$ in S, we find the minimum cost path starting with $v_1$, going through all other vertexes exactly once, and ending at $v_1$. Let the cost of this path be $cost(l)$, so the cost of the corresponding cycle would be $cost(l) + D_{l,v_1}$. After computing the distance of all subsets, we return the minimum of all $cost(l) + D_{l,v_1}$ values.
+
+Computing the $cost(l)$ is where the top-down approach of dynamic programming comes into play. We will create a map, call it C(S,l), which represents the minimum cost path, starting and ending at vertex l, going through each vertex in S once.
+
+With this, we can now define the following recurrence relations
+
+
+\begin{equation*}
+C(S,l) = \begin{cases}
+			  0  & \text{if } length(S) \le 1 \\
+             D_{lv_1}  & \text{if } length(S) = 2 \\
+             min_{l \in s}{[C($\left\{S-l\right\}$,l) + D_{l,j_S}] }  & \text{if } length(S) > 2
+       \end{cases}
+\end{equation*}
+
+
+
+To show this is correct, we will consider the following situation: \\
+
+Suppose that for a given subset, starting at vertex $v_1$ and visiting every vertex in S and ending at $v_1$, vertex $v_n$ precedes $v_1$. Assuming that all other cities were visited in optimal order, the cost for the subset would be $C(\left\{S-l\right\},v_n) + D_{v_n,j_S} $.(Michael Held \& R.M.K, 1962) Since we will accept the minimum cost over all other choices of $v_n$, we obtain this cost. Finally, if we let $ G$ denote the minimum cost of a complete tour, then \\
+\begin{center}
+    $G = min_{l\in\left\{2,3,...,n\right\}} [C(\left\{2,3,...,n\right\},l) + D_{v_n,j_S} ]$
+\end{center}
+(Michael Held \& R.M.K, 1962)
+
+\newpage
+
+For the following pseudo code, to keep a consistent naming convention of variables, we will represent $C$ as $minCostMap$. For each path in $minCostMap$ there is a corresponding parent vertex, which we will store in another map, $parentMap$. Additionally, we will represent the distance from vertex i and j not as $D_{ij}$ but instead as $distance(i,j)$.
+
+\begin{algorithm}
+\caption{Held-Karp}\label{euclid}
+\begin{algorithmic}[1]
+\Procedure{TSPHeldKarp(cityMatrix[][]}{}
+\State $\textit{minCostMap} \gets Map<Index,Integer>$
+\State $\textit{parentMap} \gets Map<Index,Integer>$
+\State $allSets \gets getAllSets(CityMatrix)$
+\State $i \gets \textit{patlen}$
+\BState \textbf{For} set in allSets:
+	\State \textbf{For} vertex = 1 $\rightarrow$ all Vertices in cityMatrix:
+		\Indent
+		\If {set contains vertex}  $continue$
+		\EndIf
+		\State $index \gets getIndex(vertex,set)$
+		\State $minCost \gets \infty$
+		\State \textbf{For} preVertex in set
+			\Indent
+			\State $cost = distance(preVertex, vertex)$  
+			\State + $cost(startVertex \rightarrow$ all vertexes $\rightarrow vertex)$
+			\State \textbf{if}  cost $<$ minCost \textbf{then}
+				\Indent
+				\State minCost = cost
+				\State minPreVertex = preVertex
+				\EndIndent
+			\State \textbf{if}  set.length is 0 \textbf{then} $minCost = distance(0,vertex)$
+			\State $minCostMap[index] \gets minCost$
+			\State $parentMap[index] \gets minPreVertex$
+			\EndIndent
+		\EndIndent
+\State $set = [1,2,...,CityMatrix.length]$
+ \State $min \gets \infty $, $ preVertex \gets -1$
+ \BState \textbf{For} k in set:
+ \State $cost = distance(k, 0)$  
+			\State + $cost(startVertex \rightarrow $all vertexes in set $\rightarrow k)$
+			\State \textbf{if}$  cost < min$ \textbf{then}
+				\Indent
+				\State min = cost
+				\State PreVertex = k
+				\EndIndent
+\BState $parentMap[index] \gets preVertex$\\
+\Return min
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\newpage
+
+Finally, we will prove by induction that the Held Karp algorithm is an improvement on the brute force by showing the algorithm has a run time of $O(n^22^n)$. At the same time, we will prove that the algorithm requires $O(n2^n)$ space.\\ 
+
+
+
+We begin by analyzing the algorithm to notice that we must compute every subset in $S$ in order to compute a solution. \\\\
+\textbf{Proof}: Let $P(n)$ denote the claim that for any set with length $n$, we have $2^n$ number of subsets.\\
+\textbf{Basis}: since an empty set has 1 subset, itself, then a set containing 0 elements has $2^0$ subsets. \\
+\textbf{Induction}: let k = n so that every k-element set has a total of $2^k$ subsets. Suppose that $P(k)$ is true. We must show that $P(k+1)$ is also true. 
+$P(k+1)$ is the claim that: for any set with length $k+1$, we have $2^{k+1}$ subsets.\\\\
+Let $a$ be an element of $S$, with $k+1$ length, where $S' = S-a$. This means that $S'$ must have k elements. We now will section $S$ into two groups: $I$ = subsets that have $a$ and $II$ = subsets that do not have $a$.\\\\
+This means that $I = S'$ exactly; the subsets are identical. Since the length of $A$ is $k$, we can apply the inductive hypothesis to see there must be $2^k$ elements in $I$.\\\\
+The subsets of $II$ are equal to $B'\cup a$ where $B'$ is a subset of $A'$. By the inductive hypothesis, $B'$ must have exactly $2^k$ sets.
+Since the total amount of sets in $ II +$ total amount of sets in$ I$ = $2^k+2^k = 2^{k+1}$, and $II \cup I$ = $S$, we know that we have $2^{k+1}$ elements in $S$.\\
+Since $S$ was just an arbitrary set, we have proved that any $(k+1)$-element set has $2^{k+1}$ subsets, proving $P(n)$ true.
+$\blacksquare$\\
+
+Finally, since we know that the computation of the subsets gives us a run-time of $2^k$, we can get our final run-time by noticing that for each permutation, we have a nested loop where we must run through each vertex inside of a loop where we must run through each vertex, giving us our $O(n^2)$. The $O(2^k)$ space comes from the fact we must store each permutation in memory.
+
+\newpage
+
+\section{Analysis of Brute Force vs Held-Karp}
+
+In this section we will compare brute force and the Held-Karp algorithm.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{c|c|c|c|c|c|c|c|c|c|c|c|}
+    \# Vertexes & 2 & 4 & 6 & 8 & 10 & 12 & 14 & 16 & 18 & 20 & 22 \\\hline
+    
+    H-K & $1.59e^{-5}$ & $5.6e^{-5}$ & .0001 & .0009 &.007 & .049&.21 &1.12 & 5.31 & 28.36 & 70.60\\ \hline
+    BF &$2.217e^{-5}$ & .0001 & 0.003 & 0.21 & 22.629 & - & - & - & - & - & - \\\hline
+  \end{tabular}
+\end{table}
+
+\begin{figure}[h!]
+\caption{Run-time, in seconds, of Held-Karp and Brute Force}
+\end{figure}
+
+In figure 6, we can see a comparison of run times of the brute force and the Held-Karp algorithm, in seconds, on various graphs with increasing number of vertexes. The algorithms were implemented in Python and ran on a 2013 Macbook Pro with a 2.6GHz i7 processor. The Held-Karp algorithm allows us to solve graphs almost twice the size in the same amount of time. Brute force tests that went beyond 10 vertexes took too long to wait for, as did Held-Karp tests over 22. 
+It is worth noting that although Held-Karp is much faster, it is also using up incredibly large amount of memory to achieve such speed, where brute force works with $O(n)$ space.
+\newpage
+
+
+\begin{appendices}
+\section{ Implementations}
+
+\begin{center}
+\includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{graphingcode}
+\includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{graphingcode2}
+A way to graph a TSPLib file. Note that the actual parsing code is not shown, as an api was used to do this portion for me.
+\end{center}
+
+\begin{center}
+\includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{distmatrix}
+A way to modify TSP input (X,Y coordinates of each vertex) into an actual matrix of distances.
+\end{center}
+
+\begin{center}
+\includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{BF}
+A Brute Force solution. Note that the code differs from the pseudo code because recursion was used to get every possible permutation of vertexes.
+\end{center}
+
+\begin{center}
+\includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{bfhelper}
+A helper function for the brute force algorithm.
+\end{center}
+
+\begin{center}
+\includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{BF}
+A Brute Force solution. Note that the code differs from the pseudo code because recursion was used to get every possible permutation of vertexes.
+\end{center}
+
+\begin{center}
+\includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{heldkarp}
+An implementation of the Held-Karp algorithm. (Ekerot, 2016)
+\end{center}
+
+\begin{center}
+\includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{input}
+An example input TSPLib file.
+\end{center}
+
+\begin{center}
+\includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{inputgraph}
+The example input TSPLib file as a graph.
+\end{center}
+
+
+\newpage
+
+\\
+Grants-MacBook-Pro:Traveling-salesman-problem eatongl\$ python TSP.py   \textbf{//run file}
+
+[[0.0, 1.0, 1.4142135623730951, 1.4142135623730951], \textbf{// distances matrix}
+
+ [1.0, 0.0, 2.23606797749979, 1.0], 
+
+[1.4142135623730951, 2.23606797749979, 0.0, 2.0], 
+
+[1.4142135623730951, 1.0, 2.0, 0.0]]
+
+best: 999999999 \textbf{//print the best solution as we find a new best}
+
+best: 6.650281539872885
+
+best:  5.414213562373095 \textbf{//final, best path cost}
+
+--- Brute Force ran in 0.0001540184021 seconds ---
+
+--- Held-Karp ran in 5.60283660889e-05 seconds ---
+
+[1, 3, 4, 2, 1] \textbf{//print optimal path of held-karp}
+
+\begin{center}
+The example output of the Brute Force and Held Karp to the TSPLib file.
+\end{center}
+
+
+\section{ Peer Reviews}
+A special thanks to Brennan Hoeting and Luke Artnak, who helped me immensely in the editing and criteria meeting process.\\\\
+Artnak gave very helpful tips on how to properly cite my in-line sources in APA format (dates, not page numbers). Artnak also pointed out that my pseudo-code for my paper did not match my implementation. I chose not to change this, because the pseudo-code was very clear and concise, yet I had already implemented my algorithm in this way. Artnak also helped me with formatting my paper properly, just general Latex tips. Artnak helped me fix up my recurrence, which had a few mistakes to it \\\\
+Hoeting read through to make sure I met the criteria. He noticed that I only compared one other improvement to the TSP, so I added two more algorithm comparisons. Hoeting also pointed out that I probably did not need to explain the 0/1 matrix output of the problem, but I felt it was necessary for explaining a technical way to describe an optimal solution. Hoeting pointed out that my proof may have proved the $2^n$ part but possibly not the $n^2$ part properly. \\\
+
+I gave tips to Hoeting about what sources to use, as well as how to go about his proof. Having written a similar paper previously for the graduate assignment, I was able to give him tips about how to apacite properly with latex. I helped Artnak use an APA citation package in Latex.
+
+\newpage
+
+\end{appendices}
+
+
+
+
+
+
+\bibliographystyle{apacite}
+\bibliography{references}
+\citep{solutionOfTSP}
+\citep{heldKarp}
+\citep{heldKarpYoutube}
+\citep{christofides}
+\citep{nearestNeighbor}
+\citep{greedycrossover}
+\citep{github}\\
+
+
+\end{document}
+

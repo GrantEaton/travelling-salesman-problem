@@ -3,6 +3,7 @@ import parser
 import networkx as nx
 import matplotlib.pyplot as plt
 import heldKarp as hk
+import time
 
 #from plot import plotTSP
 
@@ -25,19 +26,17 @@ for point in graphTups:
     count+=1
 print(G.nodes())
 
-#nx.draw(G, nx.get_node_attributes(G, 'pos'), with_labels=True, node_size=300)
-#plt.show()
-
 bestScore = 999999999
 bestPath = []
 
 def getDistancesMatrix(nodes):
     distances = [[ 0 for i in range(len(nodes))] for j in range(len(nodes))]
-    i = 0 
+    i = 0
     for curNode,xy in nodes.iteritems():
         j = 0
         for node,xy in nodes.iteritems():
-            dist = math.sqrt(((xy[0] - nodes[curNode][0]) * (xy[0] - nodes[curNode][0])) + ((xy[1] - nodes[curNode][1]) * (xy[1] - nodes[curNode][1])))
+            dist = math.sqrt(((xy[0] - nodes[curNode][0]) * (xy[0] - nodes[curNode][0])) + 
+                    ((xy[1] - nodes[curNode][1]) * (xy[1] - nodes[curNode][1])))
             distances[i][j] = dist
             j+=1
         i+=1
@@ -46,40 +45,42 @@ def getDistancesMatrix(nodes):
 print getDistancesMatrix(graphNodes)
 
 def bruteForceTSPHelper (nodes, start, curNode, path, score, visited):
+
     global bestScore
     global bestPath
  
-
+    
     for node,xy in nodes.iteritems():
         if(len(visited) is 0):
             start = node
-
+        #skip visited nodes
         if(node in visited):
             continue
         
         #compute distance
-        dist = math.sqrt(((xy[0] - nodes[curNode][0]) * (xy[0] - nodes[curNode][0])) + ((xy[1] - nodes[curNode][1]) * (xy[1] - nodes[curNode][1])))
+        dist = math.sqrt(((xy[0] - nodes[curNode][0]) * (xy[0] - nodes[curNode][0])) +
+                ((xy[1] - nodes[curNode][1]) * (xy[1] - nodes[curNode][1])))
         # print "computing dist from a: %s and b: %s dist is: %d"% ( node, curNode, dist) 
         #update values
-        #del nodes[node]
         prevNode = curNode
         curNode = node
         path.append(node)
         score += dist
         visited[node] = 1
-        #print(node)
         
+        #did we visit them all?
         if(len(visited) == len(graphNodes)): 
-            distToStart = math.sqrt(((xy[0] - graphNodes[start][0]) * (xy[0] - graphNodes[start][0])) + ((xy[1] - graphNodes[start][1]) * (xy[1] - graphNodes[start][1])))
+            #compute distance
+            distToStart = math.sqrt(((xy[0] - graphNodes[start][0]) * (xy[0] - graphNodes[start][0])) + 
+                    ((xy[1] - graphNodes[start][1]) * (xy[1] - graphNodes[start][1])))
             score += distToStart
-            #kprint(visited)
-                
-            if(score < bestScore):
-                print("best",bestScore)
+             
+            if(score < bestScore): #update score if new best
+                print "best: ", bestScore
                 bestPath = path
                 bestScore = score
         else:
-            #recursively call function to get all combinations
+            #recursively call function to get all permutations
             bruteForceTSPHelper(nodes, start, curNode, path, score, visited)
             
         del visited[node]
@@ -99,14 +100,23 @@ def bruteForceTSP(nodes):
             score = 0,
             visited = {})
 
-    print("best: ",bestScore)
+    print "best: ",bestScore
     print(bestPath)
 
-
+start_time = time.time()
 bruteForceTSP(graphNodes)
+print("--- Brute Force ran in %s seconds ---" % (time.time() - start_time))
 
-a = hk.held_karp(getDistancesMatrix(graphNodes))
-print a
+start_time = time.time()
+a = hk.heldKarp(getDistancesMatrix(graphNodes))
+print("--- Held-Karp ran in %s seconds ---" % (time.time() - start_time))
+optimalPath = [x+1 for x in a[1]]
+optimalPath.append(optimalPath[0])
+print optimalPath
 
+G.add_path(optimalPath)
+
+nx.draw(G, nx.get_node_attributes(G, 'pos'), with_labels=True, node_size=300)
+plt.show()
 
 
