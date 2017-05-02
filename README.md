@@ -14,22 +14,22 @@ This was used for a research paper on the TSP. Check TSPPaper.tex for Latex code
 # Notes: 
 The program defaults to running test.tsp. 
 File format:
+  
+NAME : xqf131  
+COMMENT : Bonn VLSI data set with 131 points  
+COMMENT : Uni Bonn, Research Institute for Discrete Math  
+COMMENT : Contributed by Andre Rohe  
+TYPE : TSP  
+DIMENSION : 4  
+EDGE_WEIGHT_TYPE : EUC_2D  
+NODE_COORD_SECTION  
+1 0 1  
+2 0 2  
+3 1 0  
+4 1 2  
+EOF  
 
-NAME : xqf131
-COMMENT : Bonn VLSI data set with 131 points
-COMMENT : Uni Bonn, Research Institute for Discrete Math
-COMMENT : Contributed by Andre Rohe
-TYPE : TSP
-DIMENSION : 4
-EDGE_WEIGHT_TYPE : EUC_2D
-NODE_COORD_SECTION
-1 0 1
-2 0 2
-3 1 0
-4 1 2
-EOF
-
-You can easily add nodes to your liking. The format is:
+You can easily add nodes to your liking. The format is:  
 Node-Number x-coordinate y-coordinate
 
 This program makes use of Carl Ekerot's Held-Karp implementation found at:
